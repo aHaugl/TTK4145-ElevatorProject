@@ -1,8 +1,7 @@
-package syncElevators
+package syncelevators
 
 import (
-	."../config"
-	//. "github.com/perkjelsvik/TTK4145-sanntid/project/config"
+	. "../config"
 )
 
 func copyAckList(msg Message, registeredOrders [NumFloors][NumButtons - 1]AckList, elevator, floor, id int, btn Button) [NumFloors][NumButtons - 1]AckList {
@@ -12,9 +11,9 @@ func copyAckList(msg Message, registeredOrders [NumFloors][NumButtons - 1]AckLis
 	return registeredOrders
 }
 
-func checkAllAckStatus(onlineList [NumElevators]bool, ImplicitAcks [NumElevators]Acknowledge, status Acknowledge) bool {
+func checkAllAckStatus(Elevator [NumElevators]Elev, ImplicitAcks [NumElevators]Acknowledge, status Acknowledge) bool {
 	for elev := 0; elev < NumElevators; elev++ {
-		if !onlineList[elev] {
+		if !Elevator[elev].Online {
 			continue
 		}
 		if ImplicitAcks[elev] != status {

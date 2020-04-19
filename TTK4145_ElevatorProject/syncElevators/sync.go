@@ -1,4 +1,4 @@
-package syncElevators
+package syncelevators
 
 import (
 	"fmt"
@@ -9,7 +9,6 @@ import (
 	"../networkCommunication/peers"
 )
 
-// SyncChannels contains all channels between governor - sync and sync - network
 type SyncChannels struct {
 	UpdateQueue     chan [NumElevators]Elev
 	UpdateSync      chan Elev
@@ -36,10 +35,10 @@ func Synchronise(ch SyncChannels, id int) {
 		registeredOrders [NumFloors][NumButtons - 1]AckList
 		elevList         [NumElevators]Elev
 		sendMsg          Message
-		onlineList       [NumElevators]bool
-		recentlyDied     [NumElevators]bool
-		someUpdate       bool
-		offline          bool
+		//onlineList       [NumElevators]bool
+		recentlyDied [NumElevators]bool
+		someUpdate   bool
+		offline      bool
 	)
 
 	timeout := make(chan bool)
@@ -62,9 +61,8 @@ func Synchronise(ch SyncChannels, id int) {
 	singleModeTicker.Stop()
 
 	for {
-
 		if offline {
-			if onlineList[id] {
+			if elevList[id].Online {
 				offline = false
 				reInitTimer := time.NewTimer(1 * time.Second)
 			REINIT:
@@ -127,7 +125,7 @@ func Synchronise(ch SyncChannels, id int) {
 			}
 
 		case msg := <-ch.IncomingMsg:
-			if msg.ID == id || !onlineList[msg.ID] || !onlineList[id] {
+			if msg.ID == id || !elevList[msg.ID].Online || !elevList[id].Online {
 				continue
 			} else {
 				if msg.Elevator != elevList {
@@ -137,7 +135,7 @@ func Synchronise(ch SyncChannels, id int) {
 					someUpdate = true
 				}
 				for elevator := 0; elevator < NumElevators; elevator++ {
-					if elevator == id || !onlineList[msg.ID] || !onlineList[id] {
+					if elevator == id || !elevList[msg.ID].Online || !elevList[id].Online {
 						continue
 					}
 					for floor := 0; floor < NumFloors; floor++ {
@@ -157,7 +155,7 @@ func Synchronise(ch SyncChannels, id int) {
 								} else if registeredOrders[floor][btn].ImplicitAcks[elevator] != Acked {
 									registeredOrders[floor][btn].ImplicitAcks[elevator] = Acked
 								}
-								if checkAllAckStatus(onlineList, registeredOrders[floor][btn].ImplicitAcks, Acked) &&
+								if checkAllAckStatus(elevList, registeredOrders[floor][btn].ImplicitAcks, Acked) &&
 									!elevList[id].Queue[floor][btn] &&
 									registeredOrders[floor][btn].DesignatedElevator == id {
 									fmt.Println("We've been assigned a new order!")
@@ -172,7 +170,7 @@ func Synchronise(ch SyncChannels, id int) {
 									registeredOrders[floor][btn].ImplicitAcks[elevator] = Finished
 								}
 
-								if checkAllAckStatus(onlineList, registeredOrders[floor][btn].ImplicitAcks, Finished) {
+								if checkAllAckStatus(elevList, registeredOrders[floor][btn].ImplicitAcks, Finished) {
 									registeredOrders[floor][btn].ImplicitAcks[id] = NotAcked
 									if registeredOrders[floor][btn].DesignatedElevator == id {
 										elevList[id].Queue[floor][btn] = false
@@ -233,16 +231,21 @@ func Synchronise(ch SyncChannels, id int) {
 
 			if len(p.New) > 0 {
 				newID, _ := strconv.Atoi(p.New)
-				onlineList[newID] = true
+				elevList[newID].Online = true
 			} else if len(p.Lost) > 0 {
 				lostID, _ = strconv.Atoi(p.Lost[0])
-				onlineList[lostID] = false
+				elevList[lostID].Online = false
 				if elevList[lostID].Queue != [NumFloors][NumButtons]bool{} && !recentlyDied[lostID] {
 					reassignTimer.Reset(1 * time.Second)
 				}
 			}
-			fmt.Println("Online elevators changed: ", onlineList)
-			tmpList := onlineList
+			var onlineElevators [NumElevators]bool
+			for elevator := 0; elevator < NumElevators; elevator++ {
+				onlineElevators[elevator] = elevList[elevator].Online
+			}
+			fmt.Println("Online elevators changed: ", onlineElevators)
+			tmpList := onlineElevators
+
 			go func() { ch.OnlineElevators <- tmpList }()
 
 		case <-reassignTimer.C:

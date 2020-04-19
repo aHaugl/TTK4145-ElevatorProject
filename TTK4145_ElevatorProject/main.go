@@ -61,16 +61,16 @@ func main() {
 		PeerTxEnable:    make(chan bool),
 	}
 	var (
-		btnsPressedChan = make(chan Keypress)
-		updateLightsCh  = make(chan [NumElevators]Elev)
+		btnsPressedCh  = make(chan Keypress)
+		updateLightsCh = make(chan [NumElevators]Elev)
 	)
 
-	hw.Init(e, btnsPressedChan, esmChans.ArrivedAtFloor, simPort)
+	hw.Init(e, btnsPressedCh, esmChans.ArrivedAtFloor, simPort)
 
-	go hw.ButtonPoller(btnsPressedChan)
+	go hw.ButtonPoller(btnsPressedCh)
 	go hw.FloorIndicatorLoop(esmChans.ArrivedAtFloor)
 	go esm.RunElevator(esmChans)
-	go ordH.OrderHandler(btnsPressedChan, ID, esmChans.OrderComplete, updateLightsCh, esmChans.NewOrder, esmChans.Elevator,
+	go ordH.OrderHandler(btnsPressedCh, ID, esmChans.OrderComplete, updateLightsCh, esmChans.NewOrder, esmChans.Elevator,
 		syncChans.UpdateQueue, syncChans.UpdateSync, syncChans.OrderUpdate)
 	go ordH.SetLights(updateLightsCh, ID)
 	go sync.Synchronise(syncChans, ID)

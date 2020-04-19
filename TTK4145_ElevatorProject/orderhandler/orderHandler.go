@@ -1,6 +1,8 @@
 package orderhandler
 
 import (
+	"fmt"
+
 	. "../config"
 	hw "../hardware"
 )
@@ -28,6 +30,7 @@ func OrderHandler(order chan Keypress, nrElev int, completedOrderCh chan int, up
 	elevators[nrElev] = <-elevatorCh
 	updateSyncCh <- elevators[nrElev]
 	for {
+		fmt.Println("TESTESTESTEST0 ")
 		select {
 		case orderLocal := <-order:
 			if !elevators[nrElev].Online && orderLocal.Btn == BtnInside {
@@ -44,25 +47,29 @@ func OrderHandler(order chan Keypress, nrElev int, completedOrderCh chan int, up
 				go func() { newOrderCh <- orderLocal }()
 
 			} else {
+				fmt.Println("TESTESTESTEST1 ")
 				if orderLocal.Floor == elevators[nrElev].Floor && elevators[nrElev].State != Moving {
 					newOrderCh <- orderLocal
 				} else {
+					fmt.Println("TESTESTESTESTEST2 ")
 					if !existingOrder(orderLocal, elevators, nrElev) {
 						var sums [NumElevators]float64
 						for elevator := 0; elevator < NumElevators; elevator++ {
 							//sums[elevator] = costCalculator(orderLocal, elevators, nrElev, elevatorCh)
 							sums[elevator] = costofElev(orderLocal, elevators[elevator])
 							if elevator != 0 {
-								if sums[elevator] < sums[orderLocal.DesignatedElevator-1] {
-									orderLocal.DesignatedElevator = elevator + 1
+								if sums[elevator] < sums[orderLocal.DesignatedElevator] {
+									orderLocal.DesignatedElevator = elevator
 									orderUpdateCh <- orderLocal
 								}
 							} else {
 								orderLocal.DesignatedElevator = 1
 							}
 						}
+						fmt.Println("Designatet Elevator has score: ", sums)
 					}
 				}
+
 			}
 		case completedFloor := <-completedOrderCh:
 			var button Button
@@ -82,6 +89,7 @@ func OrderHandler(order chan Keypress, nrElev int, completedOrderCh chan int, up
 			updateLightsCh <- elevators
 
 		case newElevator := <-elevatorCh:
+			fmt.Println("New elevator detected")
 			newQueue := elevators[nrElev].Queue
 			if elevators[nrElev].State == Undefined && newElevator.State != Undefined {
 				elevators[nrElev].Online = true
@@ -122,6 +130,7 @@ func OrderHandler(order chan Keypress, nrElev int, completedOrderCh chan int, up
 			}
 		}
 	}
+
 }
 
 func SetLights(updateLightsCh <-chan [NumElevators]Elev, nrElev int) {

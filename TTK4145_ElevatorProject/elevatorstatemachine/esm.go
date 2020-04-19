@@ -17,13 +17,13 @@ type StateMachineChannels struct {
 	ArrivedAtFloor chan int
 }
 
-// RunElevator called as a goroutine; runs elevator and updates governor for changes
 func RunElevator(ch StateMachineChannels) {
 	elevator := Elev{
-		State: Idle,
-		Dir:   DirStop,
-		Floor: hw.GetFloorSensorSignal(),
-		Queue: [NumFloors][NumButtons]bool{},
+		State:  Idle,
+		Dir:    DirStop,
+		Floor:  hw.GetFloorSensorSignal(),
+		Queue:  [NumFloors][NumButtons]bool{},
+		Online: true,
 	}
 	doorTimedOut := time.NewTimer(3 * time.Second)
 	engineErrorTimer := time.NewTimer(3 * time.Second)
