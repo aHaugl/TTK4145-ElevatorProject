@@ -13,7 +13,7 @@ import (
 	hw "./hardware"
 	"./networkCommunication/bcast"
 	"./networkCommunication/peers"
-	Q "./queue"
+	ordH "./orderhandler"
 	sync "./syncElevators"
 	// . "github.com/perkjelsvik/TTK4145-sanntid/project/config"
 	// gov "github.com/perkjelsvik/TTK4145-sanntid/project/elevatorGovernor"
@@ -70,9 +70,9 @@ func main() {
 	go hw.ButtonPoller(btnsPressedChan)
 	go hw.FloorIndicatorLoop(esmChans.ArrivedAtFloor)
 	go esm.RunElevator(esmChans)
-	go Q.OrderHandler(btnsPressedChan, ID, esmChans.OrderComplete, updateLightsCh, esmChans.NewOrder, esmChans.Elevator,
+	go ordH.OrderHandler(btnsPressedChan, ID, esmChans.OrderComplete, updateLightsCh, esmChans.NewOrder, esmChans.Elevator,
 		syncChans.UpdateQueue, syncChans.UpdateSync, syncChans.OrderUpdate)
-	go Q.SetLights(updateLightsCh, ID)
+	go ordH.SetLights(updateLightsCh, ID)
 	go sync.Synchronise(syncChans, ID)
 	go bcast.Transmitter(42034, syncChans.OutgoingMsg)
 	go bcast.Receiver(42034, syncChans.IncomingMsg)
